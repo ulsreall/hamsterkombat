@@ -37,6 +37,7 @@ def get_token(init_data_raw):
     headers = {
         'Accept-Language': 'en-US,en;q=0.9',
         'Connection': 'keep-alive',
+        'authorization' : 'authToken is empty, store token null',
         'Origin': 'https://hamsterkombat.io',
         'Referer': 'https://hamsterkombat.io/',
         'Sec-Fetch-Dest': 'empty',
@@ -47,17 +48,28 @@ def get_token(init_data_raw):
         'content-type': 'application/json'
     }
     data = json.dumps({"initDataRaw": init_data_raw})
-    response = requests.post(url, headers=headers, data=data)
-    if response.status_code == 200:
-        return response.json()['authToken']
-    else:
-        error_data = response.json()
-        if "invalid" in error_data.get("error_code", "").lower():
-            print(Fore.RED + Style.BRIGHT + "\rFailed Get Token. Invalid init data", flush=True)
+    try:
+        response = requests.post(url, headers=headers, data=data)
+        # print(response.status_code)
+        if response.status_code == 200:
+            return response.json()['authToken']
+        elif response.status_code == 403:
+            print(Fore.RED + Style.BRIGHT + "\rAkses Ditolak. Status 403", flush=True)
+        elif response.status_code == 500:
+            print(Fore.RED + Style.BRIGHT + "\rInternal Server Error", flush=True)
         else:
-            print(Fore.RED + Style.BRIGHT + f"\rFailed Get Token. {error_data}", flush=True)
-        return None
-
+            error_data = response.json()
+            if "invalid" in error_data.get("error_code", "").lower():
+                print(Fore.RED + Style.BRIGHT + "\rGagal Mendapatkan Token. Data init tidak valid", flush=True)
+            else:
+                print(Fore.RED + Style.BRIGHT + f"\rGagal Mendapatkan Token. {error_data}", flush=True)
+    except requests.exceptions.Timeout:
+        print(Fore.RED + Style.BRIGHT + "\rGagal Mendapatkan Token. Request Timeout", flush=True)
+    except requests.exceptions.ConnectionError:
+        print(Fore.RED + Style.BRIGHT + "\rGagal Mendapatkan Token. Kesalahan Koneksi", flush=True)
+    except Exception as e:
+        print(Fore.RED + Style.BRIGHT + f"\rGagal Mendapatkan Token. Error: {str(e)}", flush=True)
+    return None
 def authenticate(token):
     url = 'https://api.hamsterkombat.io/auth/me-telegram'
     headers = get_headers(token)
@@ -205,6 +217,7 @@ def main():
             print(Fore.GREEN + Style.BRIGHT + f"\rMendapatkan token...", end="", flush=True)
 
             token = get_token(init_data_raw)
+            # print(token)
             if token:
                 token_dict[init_data_raw] = token
                 print(Fore.GREEN + Style.BRIGHT + f"\rBerhasil mendapatkan token    ", flush=True)
@@ -258,7 +271,7 @@ def main():
                     print(Fore.GREEN + Style.BRIGHT + "\r[ Tap Status ] : Tapped            ", flush=True)
                 else:
                     print(Fore.RED + Style.BRIGHT + "\r[ Tap Status ] : Gagal Tap           ", flush=True)
-                    break 
+                    continue 
                 print(Fore.GREEN + f"\r[ Checkin Daily ] : Checking...", end="", flush=True)
 
                 time.sleep(1)
@@ -316,7 +329,7 @@ def main():
                         else:
                             print(Fore.RED + Style.BRIGHT + f"\r[ List Task ] : Gagal mendapatkan list task {response.status_code}\n", flush=True)
                 else:
-                    print(Fore.GREEN + f"\[ List Task ] : Skipped...", end="", flush=True)   
+                    print(Fore.GREEN + f"\r[ List Task ] : Skipped...", end="", flush=True)   
                 # else:
                     # print(Fore.GREEN + Style.BRIGHT + "\r[ List Task ] : Sudah di cek dan claimed", flush=True)
                     
