@@ -274,7 +274,7 @@ def main():
                     if exchange_set.status_code == 200:
                         print(Fore.GREEN + Style.BRIGHT +'\rSukses set exchange ke OKX', flush=True)
                     else:
-                        print(Fore.RED + Style.BRIGHT +'\rGagal set exchange' + exchange_set.response.json(), flush=True)
+                        print(Fore.RED + Style.BRIGHT +'\rGagal set exchange', flush=True)
                 print(Fore.CYAN + Style.BRIGHT + f"[ Passive Earn ] : {clicker_data['earnPassivePerHour']}\n")
                 print(Fore.GREEN + f"\r[ Tap Status ] : Tapping ...", end="", flush=True)
 
