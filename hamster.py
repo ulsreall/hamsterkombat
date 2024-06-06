@@ -149,11 +149,15 @@ def get_available_upgrades(token):
     headers = get_headers(token)
     response = requests.post(url, headers=headers)
     if response.status_code == 200:
-        print(Fore.GREEN + Style.BRIGHT + f"\r[ Upgrade Minning ] : Berhasil mendapatkan list upgrade.", flush=True)
-        return response.json()['upgradesForBuy']
+        try:
+            upgrades = response.json()['upgradesForBuy']
+            print(Fore.GREEN + Style.BRIGHT + f"\r[ Upgrade Minning ] : Berhasil mendapatkan list upgrade.", flush=True)
+            return upgrades
+        except json.JSONDecodeError:
+            print(Fore.RED + Style.BRIGHT + "\r[ Upgrade Minning ] : Gagal mengurai JSON.", flush=True)
+            return []
     else:
-
-        print(Fore.RED + Style.BRIGHT + f"\r[ Upgrade Minning ] : Gagal mendapatkan daftar upgrade: {response.json()}", flush=True)
+        print(Fore.RED + Style.BRIGHT + f"\r[ Upgrade Minning ] : Gagal mendapatkan daftar upgrade: Status {response.status_code}", flush=True)
         return []
 
 
@@ -161,35 +165,45 @@ def buy_upgrade(token, upgrade_id, upgrade_name):
     url = 'https://api.hamsterkombat.io/clicker/buy-upgrade'
     headers = get_headers(token)
     data = json.dumps({"upgradeId": upgrade_id, "timestamp": int(time.time())})
-    # print(data)
     response = requests.post(url, headers=headers, data=data)
     if response.status_code == 200:
-        print(Fore.GREEN + Style.BRIGHT + f"\r[ Upgrade Minning ] : Upgrade {upgrade_name} berhasil dibeli.", flush=True)
+        try:
+            print(Fore.GREEN + Style.BRIGHT + f"\r[ Upgrade Minning ] : Upgrade {upgrade_name} berhasil dibeli.", flush=True)
+        except json.JSONDecodeError:
+            print(Fore.RED + Style.BRIGHT + "\r[ Upgrade Minning ] : Gagal mengurai JSON saat upgrade.", flush=True)
     else:
-        error_response = response.json()
-        if error_response.get('error_code') == 'INSUFFICIENT_FUNDS':
-            print(Fore.RED + Style.BRIGHT + f"\r[ Upgrade Minning ] : Coin tidak cukup wkwkw :V", flush=True)
-            return 'insufficient_funds'
-        else:
-            print(Fore.RED + Style.BRIGHT + f"\r[ Upgrade Minning ] : Failed upgrade {upgrade_name}: {response.json()}", flush=True)
-
-
+        try:
+            error_response = response.json()
+            if error_response.get('error_code') == 'INSUFFICIENT_FUNDS':
+                print(Fore.RED + Style.BRIGHT + f"\r[ Upgrade Minning ] : Coin tidak cukup wkwkw :V", flush=True)
+                return 'insufficient_funds'
+            else:
+                print(Fore.RED + Style.BRIGHT + f"\r[ Upgrade Minning ] : Failed upgrade {upgrade_name}: {error_response}", flush=True)
+        except json.JSONDecodeError:
+            print(Fore.RED + Style.BRIGHT + f"\r[ Upgrade Minning ] : Gagal mendapatkan respons JSON. Status: {response.status_code}", flush=True)
 
 
 def auto_upgrade_passive_earn(token):
-    upgrades = get_available_upgrades(token)
-    if not upgrades:  # Cek jika daftar upgrade kosong
-        print(Fore.RED + Style.BRIGHT + f"\r[ Upgrade Minning ] : Tidak ada upgrade yang tersedia atau gagal mendapatkan daftar upgrade.", flush=True)
-        return  # Keluar dari fungsi jika tidak ada upgrade yang bisa diproses
-    for upgrade in upgrades:
-        if upgrade['isAvailable'] and not upgrade['isExpired']:
-            print(Fore.YELLOW + Style.BRIGHT + f"[ Upgrade Minning ] : {upgrade['name']} | Harga: {upgrade['price']} | Profit: {upgrade['profitPerHour']} / Jam ")
-            print(Fore.CYAN + Style.BRIGHT + f"\r[ Upgrade Minning ] : Upgrading {upgrade['name']}", end="", flush=True)
-            result = buy_upgrade(token, upgrade['id'], upgrade['name'])
-            if result == 'insufficient_funds':
-                print(Fore.RED + Style.BRIGHT + f"\rBeralih ke akun selanjutnya\n\n", flush=True)
-                return 
-
+    attempts = 0
+    while attempts < 3:
+        upgrades = get_available_upgrades(token)
+        if not upgrades:  # Cek jika daftar upgrade kosong
+            print(Fore.RED + Style.BRIGHT + f"\r[ Upgrade Minning ] : Tidak ada upgrade yang tersedia atau gagal mendapatkan daftar upgrade.", flush=True)
+            attempts += 1
+            time.sleep(1)  # Tunggu sebentar sebelum mencoba lagi
+            continue
+        for upgrade in upgrades:
+            if upgrade['isAvailable'] and not upgrade['isExpired']:
+                print(Fore.YELLOW + Style.BRIGHT + f"[ Upgrade Minning ] : {upgrade['name']} | Harga: {upgrade['price']} | Profit: {upgrade['profitPerHour']} / Jam ")
+                print(Fore.CYAN + Style.BRIGHT + f"\r[ Upgrade Minning ] : Upgrading {upgrade['name']}", end="", flush=True)
+                result = buy_upgrade(token, upgrade['id'], upgrade['name'])
+                if result == 'insufficient_funds':
+                    if lanjut_upgrade == 'n':
+                        print(Fore.RED + Style.BRIGHT + f"\rBeralih ke akun selanjutnya\n\n", flush=True)
+                        return
+                    
+        return  # Keluar dari fungsi jika upgrade berhasil
+    print(Fore.RED + Style.BRIGHT + "\rGagal melakukan upgrade setelah 3 percobaan.", flush=True)
 
  
 
@@ -338,6 +352,7 @@ def main():
                 if auto_upgrade_passive == 'y':
                     print(Fore.GREEN + f"\r[ Upgrade Minning ] : Checking...", end="", flush=True)
                     auto_upgrade_passive_earn(token)
+                    
             else:
 
 
@@ -382,6 +397,15 @@ while True:
         break
     else:
         print("Masukkan 'y' atau 'n'.")
+
+if auto_upgrade_passive == 'y':
+    while True:
+        lanjut_upgrade = input("Upgrade yang lain jika coin tidak cukup? (default n) (y/n): ").strip().lower()
+        if lanjut_upgrade in ['y', 'n', '']:
+            lanjut_upgrade = lanjut_upgrade or 'n'
+            break
+        else:
+            print("Masukkan 'y' atau 'n'.")
 
 while True:
     cek_task_list = input("Enable Cek Task? (default n) (y/n): ").strip().lower()
