@@ -124,6 +124,29 @@ def exchange(token):
     response = requests.post(url, headers=headers, data=data)
     return response
 
+def claim_cipher(token, cipher_text):
+    url = 'https://api.hamsterkombat.io/clicker/claim-daily-cipher'
+    headers = get_headers(token)
+    headers['accept'] = 'application/json'
+    headers['content-type'] = 'application/json'
+    data = json.dumps({"cipher": cipher_text})
+    response = requests.post(url, headers=headers, data=data)
+    
+    # Tambahkan pengecekan status code dan konten respons
+    if response.status_code == 200:
+        try:
+            # Coba parse JSON dan lanjutkan proses
+            return response
+        except json.JSONDecodeError:
+            print(Fore.RED + Style.BRIGHT + "Gagal mengurai JSON dari respons.", flush=True)
+            return None
+    elif response.status_code == 400:
+        return response
+
+    else:
+        print(Fore.RED + Style.BRIGHT + f"Gagal claim cipher, status code: {response.status_code}", flush=True)
+        return None
+
 def check_task(token, task_id):
     url = 'https://api.hamsterkombat.io/clicker/check-task'
     headers = get_headers(token)
@@ -216,8 +239,10 @@ def auto_upgrade_passive_earn(token):
 
 # MAIN CODE
 cek_task_dict = {}
+claimed_ciphers = set()
 def main():
     global cek_task_dict
+    print_welcome_message()
     print(Fore.GREEN + Style.BRIGHT + "Starting Hamster Kombat....\n\n")
     init_data = load_tokens('initdata.txt')
     token_cycle = cycle(init_data)
@@ -230,7 +255,7 @@ def main():
         if token:
             print(Fore.GREEN + Style.BRIGHT + f"\rMenggunakan token yang sudah ada...", end="", flush=True)
         else:
-            print(Fore.GREEN + Style.BRIGHT + f"\rMendapatkan token...", end="", flush=True)
+            print(Fore.GREEN + Style.BRIGHT + f"\rMendapatkan token...              ", end="", flush=True)
 
             token = get_token(init_data_raw)
             # print(token)
@@ -248,9 +273,11 @@ def main():
         if response.status_code == 200:
 
             user_data = response.json()
-            username = user_data.get('telegramUser', {}).get('username', 't.me/ghalibie')
+            username = user_data.get('telegramUser', {}).get('username', 'Username Kosong')
+            firstname = user_data.get('telegramUser', {}).get('firstName', 'Kosong')
+            lastname = user_data.get('telegramUser', {}).get('lastName', 'Kosong')
             
-            print(Fore.GREEN + Style.BRIGHT + f"\r\n======[{Fore.WHITE + Style.BRIGHT} {username} {Fore.GREEN + Style.BRIGHT}]======")
+            print(Fore.GREEN + Style.BRIGHT + f"\r\n======[{Fore.WHITE + Style.BRIGHT} {username} | {firstname} {lastname} {Fore.GREEN + Style.BRIGHT}]======")
 
             # Sync Clicker
             print(Fore.GREEN + f"\rGetting info user...", end="", flush=True)
@@ -287,7 +314,7 @@ def main():
                     print(Fore.GREEN + Style.BRIGHT + "\r[ Tap Status ] : Tapped            ", flush=True)
                 else:
                     print(Fore.RED + Style.BRIGHT + "\r[ Tap Status ] : Gagal Tap           ", flush=True)
-                    continue 
+                    # continue 
                 print(Fore.GREEN + f"\r[ Checkin Daily ] : Checking...", end="", flush=True)
 
                 time.sleep(1)
@@ -302,6 +329,24 @@ def main():
                 else:
                     print(Fore.RED + Style.BRIGHT + f"\r[ Checkin Daily ] Gagal cek daily {response.status_code}", flush=True)
                 
+                if ask_cipher == 'y':
+                    if token not in claimed_ciphers:
+                        print(Fore.GREEN + Style.BRIGHT + f"\r[ Claim Cipher ] : Claiming cipher...", end="", flush=True)
+                        response = claim_cipher(token, cipher_text)
+                        if response.status_code == 200:
+                            bonuscoins = response.json()['dailyCipher']['bonusCoins']
+                            print(Fore.GREEN + Style.BRIGHT + f"\r[ Claim Cipher ] : Berhasil claim cipher | {bonuscoins} bonus coin", flush=True)
+                            claimed_ciphers.add(token)
+                        else:
+                            if response is not None:
+                                error_info = response.json()
+                                if error_info.get('error_code') == 'DAILY_CIPHER_DOUBLE_CLAIMED':
+                                    print(Fore.RED + Style.BRIGHT + f"\r[ Claim Cipher ] : Cipher already claimed", flush=True)
+                            else:
+                                print(Fore.RED + Style.BRIGHT + f"\r[ Claim Cipher ] : Gagal claim cipher {response.status_code}", flush=True)
+                    else:
+                            print(Fore.RED + Style.BRIGHT + f"\r[ Claim Cipher ] : Gagal claim cipher {response.status_code}", flush=True)
+
                 # Upgrade 
                 if auto_upgrade_energy == 'y':
                     print(Fore.GREEN + f"\r[ Upgrade ] : Upgrading Energy....", end="", flush=True)
@@ -416,6 +461,32 @@ while True:
         break
     else:
         print("Masukkan 'y' atau 'n'.")
+
+while True:
+    ask_cipher = input("Auto Claim Cipher Daily / Sandi Harian? (default n) (y/n): ").strip().lower()
+    if ask_cipher in ['y', 'n', '']:
+        ask_cipher = ask_cipher or 'n'
+        break
+    else:
+        print("Masukkan 'y' atau 'n'.")
+
+if ask_cipher == 'y':
+    while True:
+        cipher_text = input("Masukkan cipher nya / sandi harian : ")
+        if cipher_text:
+            break
+        else:
+            print("Masukkan sandi harian blok!.")
+
+def print_welcome_message():
+    print(r"""
+          
+█▀▀ █░█ ▄▀█ █░░ █ █▄▄ █ █▀▀
+█▄█ █▀█ █▀█ █▄▄ █ █▄█ █ ██▄
+          """)
+    print(Fore.GREEN + Style.BRIGHT + "Hamster Kombat BOT!")
+    print(Fore.GREEN + Style.BRIGHT + "Update Link: https://github.com/adearman/hamsterkombat")
+    print(Fore.GREEN + Style.BRIGHT + "Join Telegram Channel: https://t.me/ghalibie\n")
 
 if __name__ == "__main__":
     main()
