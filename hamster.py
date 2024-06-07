@@ -142,7 +142,9 @@ def claim_cipher(token, cipher_text):
             return None
     elif response.status_code == 400:
         return response
-
+    elif response.status_code == 500:
+        print(Fore.RED + Style.BRIGHT + f"Gagal claim cipher, Internal Server Error", flush=True)
+        return response
     else:
         print(Fore.RED + Style.BRIGHT + f"Gagal claim cipher, status code: {response.status_code}", flush=True)
         return None
@@ -343,9 +345,9 @@ def main():
                                 if error_info.get('error_code') == 'DAILY_CIPHER_DOUBLE_CLAIMED':
                                     print(Fore.RED + Style.BRIGHT + f"\r[ Claim Cipher ] : Cipher already claimed", flush=True)
                             else:
-                                print(Fore.RED + Style.BRIGHT + f"\r[ Claim Cipher ] : Gagal claim cipher {response.status_code}", flush=True)
+                                print(Fore.RED + Style.BRIGHT + f"\r[ Claim Cipher ] : Gagal claim cipher {response}", flush=True)
                     else:
-                            print(Fore.RED + Style.BRIGHT + f"\r[ Claim Cipher ] : Gagal claim cipher {response.status_code}", flush=True)
+                            print(Fore.RED + Style.BRIGHT + f"\r[ Claim Cipher ] : Gagal claim cipher {response}", flush=True)
 
                 # Upgrade 
                 if auto_upgrade_energy == 'y':
