@@ -154,7 +154,7 @@ def get_available_upgrades(token):
             print(Fore.GREEN + Style.BRIGHT + f"\r[ Upgrade Minning ] : Berhasil mendapatkan list upgrade.", flush=True)
             return upgrades
         except json.JSONDecodeError:
-            print(Fore.RED + Style.BRIGHT + "\r[ Upgrade Minning ] : Gagal mengurai JSON.", flush=True)
+            print(Fore.RED + Style.BRIGHT + "\r[ Upgrade Minning ] : Gagal mendapatkan response JSON.", flush=True)
             return []
     else:
         print(Fore.RED + Style.BRIGHT + f"\r[ Upgrade Minning ] : Gagal mendapatkan daftar upgrade: Status {response.status_code}", flush=True)
@@ -179,8 +179,10 @@ def buy_upgrade(token, upgrade_id, upgrade_name):
                 return 'insufficient_funds'
             else:
                 print(Fore.RED + Style.BRIGHT + f"\r[ Upgrade Minning ] : Failed upgrade {upgrade_name}: {error_response}", flush=True)
+                return []
         except json.JSONDecodeError:
             print(Fore.RED + Style.BRIGHT + f"\r[ Upgrade Minning ] : Gagal mendapatkan respons JSON. Status: {response.status_code}", flush=True)
+            return []
 
 
 def auto_upgrade_passive_earn(token):
