@@ -277,7 +277,7 @@ def buy_upgrade_combo(token, upgrade_id):
             print(Fore.RED + Style.BRIGHT + f"\r[ Daily Combo ] : Gagal mendapatkan respons JSON. Status: {response.status_code}", flush=True)
             return None
 
-def auto_upgrade_passive_earn(token):
+def auto_upgrade_passive_earn(token, max_price):
     upgrade_list = read_upgrade_list('upgrade_list.txt')
     insufficient_funds = False
     cooldown_upgrades = {}  # Dictionary untuk menyimpan waktu cooldown yang tersisa untuk setiap upgrade
@@ -296,6 +296,11 @@ def auto_upgrade_passive_earn(token):
                     continue  # Skip upgrade ini karena masih dalam cooldown
 
                 price = upgrade['price']
+                # Skip upgrade jika harga lebih dari max_price
+                if price > max_price:
+                    print(Fore.YELLOW + Style.BRIGHT + f"[ Upgrade Minning ] : Upgrade {upgrade['name']} dilewati karena harga terlalu tinggi: {price}")
+                    continue
+
                 profit_per_hour = upgrade['profitPerHour']
                 value = profit_per_hour / price  # Menghitung nilai per dolar yang diinvestasikan
 
@@ -641,7 +646,7 @@ def main():
                 
                 if auto_upgrade_passive == 'y':
                     print(Fore.GREEN + f"\r[ Upgrade Minning ] : Checking...", end="", flush=True)
-                    auto_upgrade_passive_earn(token)
+                    auto_upgrade_passive_earn(token, max_price)
                     
             else:
 
@@ -690,7 +695,14 @@ while True:
     else:
         print("Masukkan 'y' atau 'n'.")
 
-
+if auto_upgrade_passive == 'y':
+    while True:
+        max_price = input("Masukkan harga maksimum upgrade ? (contoh 1500000): ")
+        if max_price:
+            max_price = int(max_price)
+            break
+        else:
+            print("Masukkan harga maksimum upgrade blok!.")
 
 while True:
     cek_task_list = input("Enable Cek Task? (default n) (y/n): ").strip().lower()
@@ -728,7 +740,9 @@ def print_welcome_message():
           """)
     print(Fore.GREEN + Style.BRIGHT + "Hamster Kombat BOT!")
     print(Fore.GREEN + Style.BRIGHT + "Update Link: https://github.com/adearman/hamsterkombat")
-    print(Fore.GREEN + Style.BRIGHT + "Join Telegram Channel: https://t.me/ghalibie\n")
+    print(Fore.YELLOW + Style.BRIGHT + "Free Konsultasi Join Telegram Channel: https://t.me/ghalibie")
+    print(Fore.BLUE + Style.BRIGHT + "Buy me a coffee :) 0823 2367 3487 GOPAY / DANA")
+    print(Fore.RED + Style.BRIGHT + "NOT FOR SALE ! Ngotak dikit bang. Ngoding susah2 kau tinggal rename :)\n\n")
 
 if __name__ == "__main__":
     main()
